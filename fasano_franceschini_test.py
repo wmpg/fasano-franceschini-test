@@ -10,17 +10,22 @@ import multiprocessing
 
 def ff_test_2sample(s1, s2, n_perms=100, threads=1, seed=None):
     """
-    Computes the 2-sample Fasano-Franceschini test, a multivariate generalization of the Kolmogorov-Smirnov test as outlined by Fasano & Franceschini (1987). The test evaluates the null hypothesis H0 that two i.i.d. random samples are drawn from the same underlying probability distribution. Although Fasano & Franceschini's original paper only evaluates two- and three-dimensional data, the test can be extended to arbitrary dimensions.
+    Computes the 2-sample Fasano-Franceschini test, a multivariate generalization of the Kolmogorov-Smirnov test as outlined by Fasano & Franceschini (1987).
+    The test evaluates the null hypothesis H0 that two i.i.d. random samples s1 and s2 are drawn from the same underlying probability distributions F1 = F2,
+    against the alternative hypothesis H1 that the samples are drawn from different probability distributions F1 != F2.
+    Although Fasano & Franceschini's original paper only evaluates two- and three-dimensional distributions, the test can be extended to arbitrary dimension.
 
     :param array-like s1: n1 x d array of samples with length n1 and dimension d
     :param array-like s2: n2 x d array of samples with length n2 and dimension d
-    :default param int n_perms: The number of permutations to use for the permutation test for significance testing, following the procedure of Puritz et al. (2023). If set to 0, only the test statistic Dn is returned. The default setting is 100. 
-    :default param int threads: The number of threads to use for the permutation testing. If set to "auto", the number of threads is determined by multiprocessing.cpu_count() - 1. The default setting is 1.
+    :default param int n_perms: The number of permutations to use for the permutation test for significance testing, following the procedure of Puritz et al. (2023). 
+    If set to 0, only the test statistic Dn is returned. The default setting is 100. 
+    :default param int threads: The number of threads to use for the permutation testing. 
+    If set to "auto", the number of threads is determined by multiprocessing.cpu_count() - 1. The default setting is 1.
     :optional param int seed: Integer to seed the RNG for the permutation testing to reproducibly compute p-values. The default setting is None.
 
     :return: A tuple of floats (Dn, pval) if n_perms is not equal to 0, or a float Dn if n_perms is 0.
     float Dn: The value of the test statistic for the two-sample Fasano-Franceschini test, Dn
-    float (optional) pval: The p-value for the test statistic, evaluated using the permutation test
+    float (optional) pval: The p-value for the permutation test
     """
     # lengths and dimensions of the two samples
     n1, dim1 = s1.shape

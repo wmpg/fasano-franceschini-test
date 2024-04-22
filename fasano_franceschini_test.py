@@ -22,37 +22,28 @@ def ff_test_2sample(s1, s2):
     # lengths and dimensions of the two samples
     n1, dim1 = s1.shape
     n2, dim2 = s2.shape
+    # if they don't have same number of dimensions raise an error
     if dim1 != dim2:
         raise TypeError('S1 and S2 do not have the same number of dimensions')
-    else:
-        dim = dim1  # set equal to one of them
-    # create permutation array for all permutations of (-1, 1) over all D dimensions (length 2^d)
-    permarr = np.array(list(itertools.product(*[(1, -1) for d in range(dim)])))
-    # D1 and D2 are the maximum values across all samples from 1...n1 and 1...n2
-    D1_arr = np.zeros(n1)
-    D2_arr = np.zeros(n2)
-    # Compute the probability of finding points in each of the 2^d volumes of d-dimensional space for the s1 samples
-    # by counting the fraction of points in each volume
-    for i1, point1 in enumerate(s1):
-        # gets the normalized orthant probabilities for s1, s2 over all permutations in permarr
-        # greater than or less than doesn't matter since the results are symmetric when considering all permutations
-        normed_orth_probs_s11 = np.sum(np.bitwise_and.reduce(np.multiply(permarr[:, None], s1) > 
-                                                             np.multiply(permarr[:, None], point1), axis=-1), axis=-1)/n1
-        normed_orth_probs_s21 = np.sum(np.bitwise_and.reduce(np.multiply(permarr[:, None], s2) > 
-                                                             np.multiply(permarr[:, None], point1), axis=-1), axis=-1)/n2
-        # compute the maximum distance between two corresponding orthant probabilities across all orthants
-        D1_arr[i1] = np.max(np.array([np.abs(f11-f21) for f11, f21 in zip(normed_orth_probs_s11, normed_orth_probs_s21)]))
-    # and the same for the s2 samples:
-    for i2, point2 in enumerate(s2):
-        normed_orth_probs_s12 = np.sum(np.bitwise_and.reduce(np.multiply(permarr[:, None], s1) > 
-                                                             np.multiply(permarr[:, None], point2), axis=-1),axis=-1)/n1
-        normed_orth_probs_s22 = np.sum(np.bitwise_and.reduce(np.multiply(permarr[:, None], s2) > 
-                                                             np.multiply(permarr[:, None], point2), axis=-1), axis=-1)/n2
-        # and compute the maximum distance
-        D2_arr[i2] = np.max(np.array([np.abs(f12-f22) for f12, f22 in zip(normed_orth_probs_s12, normed_orth_probs_s22)]))
-    # Compute the D1, D2 test statistics as the maximum values of D1 and D2 across all samples 1...n1 and 1...n2:
-    D1 = np.max(D1_arr)
-    D2 = np.max(D2_arr)
+    # create permutation array for all permutations of (-1, 1) over all D dimensions (length 2^D)
+    permarr = np.array(list(itertools.product(*[(1, -1) for d in range(dim1)])))
+    # manipulate s1 and s2 arrays to get broadcastable arrays, permuting every sample into every orthant  
+    s1_bc = (permarr[:, None] * s1)[None, :, :, :]  # broadcast array to broadcast
+    s1_pt = (permarr * s1[:, None])[:, :, None, :]  # point array to be broadcast over
+    s2_bc = (permarr[:, None] * s2)[None, :, :, :]
+    s2_pt = (permarr * s2[:, None])[:, :, None, :]
+    # Orthant probabilities for all orthants and all samples from 1...n1 and 1...n2
+    # Compute the normalized probability of finding points in s1, s2 in each of the 2^d orthants of d-dimensional 
+    # space for s1, s2 by counting the fraction of points in each volume and dividing by the sample size using 
+    # numpy broadcasting for efficient vectorized operations
+    normed_orth_probs_s11 = np.sum(np.bitwise_and.reduce(s1_bc > s1_pt, axis=-1), axis=-1)/n1
+    normed_orth_probs_s21 = np.sum(np.bitwise_and.reduce(s2_bc > s1_pt, axis=-1), axis=-1)/n2
+    normed_orth_probs_s12 = np.sum(np.bitwise_and.reduce(s1_bc > s2_pt, axis=-1), axis=-1)/n1
+    normed_orth_probs_s22 = np.sum(np.bitwise_and.reduce(s2_bc > s2_pt, axis=-1), axis=-1)/n2
+    # Compute the D1, D2 test statistics as the maximum distance between two corresponding orthant probabilities for 
+    # s1 and s2 across all 2^D orthants and across all samples 1...n1 and 1...n2:
+    D1 = np.max(np.abs(normed_orth_probs_s11 - normed_orth_probs_s21))
+    D2 = np.max(np.abs(normed_orth_probs_s12 - normed_orth_probs_s22))
     # Compute test statistic as the average of the two D1, D2 statistics scaled by the sample size:
     Dn = np.sqrt((n1 * n2)/(n1 + n2)) * np.mean((D1, D2))
     # return test statistic Dn

@@ -11,5 +11,5 @@
 .idea/
 # ignore temporary MS office files (e.g. locked ~$*.xlsx files created when opening excel)
 ~$*
-# ignore granvik model folder since the .dat file is too big to add
-/speed_radiant_difference/granvik-model
+# ignore pycache files
+**/*.pyc

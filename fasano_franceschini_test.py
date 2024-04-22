@@ -6,18 +6,21 @@
 # 3. Puritz, C., Ness-Cohn, E. & Braun, R. (2023). fasano.franceschini.test: An Implementation of a Multivariate KS Test in R. The R Journal, 15(3), 159-171.
 import numpy as np
 import itertools
+import multiprocessing
 
-def ff_test_2sample(s1, s2):
+def ff_test_2sample(s1, s2, n_perms=100, threads=1, seed=None):
     """
     Computes the 2-sample Fasano-Franceschini test, a multivariate generalization of the Kolmogorov-Smirnov test as outlined by Fasano & Franceschini (1987). The test evaluates the null hypothesis H0 that two i.i.d. random samples are drawn from the same underlying probability distribution. Although Fasano & Franceschini's original paper only evaluates two- and three-dimensional data, the test can be extended to arbitrary dimensions.
 
     :param array-like s1: n1 x d array of samples with length n1 and dimension d
     :param array-like s2: n2 x d array of samples with length n2 and dimension d
+    :default param int n_perms: The number of permutations to use for the permutation test for significance testing, following the procedure of Puritz et al. (2023). If set to 0, only the test statistic Dn is returned. The default setting is 100. 
+    :default param int threads: The number of threads to use for the permutation testing. If set to "auto", the number of threads is determined by multiprocessing.cpu_count() - 1. The default setting is 1.
+    :optional param int seed: Integer to seed the RNG for the permutation testing to reproducibly compute p-values. The default setting is None.
 
-    :return: a tuple of the following values:
-
-    float statistic: The value of the test statistic, Dn
-    float p-value (NEED TO IMPLEMENT): The p-value
+    :return: A tuple of floats (Dn, pval) if n_perms is not equal to 0, or a float Dn if n_perms is 0.
+    float Dn: The value of the test statistic for the two-sample Fasano-Franceschini test, Dn
+    float (optional) pval: The p-value for the test statistic, evaluated using the permutation test
     """
     # lengths and dimensions of the two samples
     n1, dim1 = s1.shape
@@ -46,5 +49,27 @@ def ff_test_2sample(s1, s2):
     D2 = np.max(np.abs(normed_orth_probs_s12 - normed_orth_probs_s22))
     # Compute test statistic as the average of the two D1, D2 statistics scaled by the sample size:
     Dn = np.sqrt((n1 * n2)/(n1 + n2)) * np.mean((D1, D2))
-    # return test statistic Dn
-    return Dn
+    # if n_permutations is 0, return only the test statistic, otherwise compute the p-value
+    if n_perms == 0:
+        return Dn
+    else:
+        # compute the p-value using the permutation test method described in Puritz et al. 2023
+        rng = np.random.default_rng(seed=seed)
+        s = np.concatenate((s1, s2))
+        # generate n_perms permutations of S
+        perm_s_indices = rng.permuted(np.repeat([range(0, n1 + n2)], n_perms, axis=0), axis=1)
+        # initialize the multithreading if threads > 1:
+        if threads == 'auto':
+            n_threads = multiprocessing.cpu_count() - 1
+        else:
+            n_threads = threads
+        # initialize the multiprocessing pool
+        pool = multiprocessing.Pool(n_threads)
+        # perform the ff tests on the permutations of S with multiprocessing, calling function recursively with 
+        # n_perms = 0 to get the test statistic
+        pars = zip(s[perm_s_indices[:,:n1]], s[perm_s_indices[:,-n2:]], np.repeat(0, n_perms))
+        perm_ff_tests = np.array(pool.starmap(ff_test_2sample, pars))
+        # compute p-value using equation 6 of Puritz et al. 2023
+        pval = np.sum(perm_ff_tests > Dn)/(1 + n_perms) + rng.uniform(0., 1.) * (1 + np.sum(perm_ff_tests == Dn))/(1 + n_perms)
+    # return tuple of (Dn, pval)
+    return (Dn, pval)

@@ -6,6 +6,8 @@ We extend their method of computing the two-sample test statistic $D_n$ to arbit
 instead using Monte Carlo sampling to estimate critical values of the test statistic for two- and three-dimensional distributions. We adopt the permutation approach for significance testing of Puritz et al. (2023) in their 
 `R` implementation of the same multivariate K-S test outlined by Fasano and Franceschini (1987).
 
+_Requirements:_ `numpy`
+
 ### References
 1. Peacock, J. A. (1983). Two-dimensional goodness-of-fit testing in astronomy. Monthly Notices of the Royal Astronomical Society, 202(3), 615-627
 2. Fasano, G., & Franceschini, A. (1987). A multidimensional version of the Kolmogorov–Smirnov test. Monthly Notices of the Royal Astronomical Society, 225(1), 155-170.

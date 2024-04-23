@@ -75,6 +75,6 @@ def ff_test_2sample(s1, s2, n_perms=100, threads=1, seed=None):
         pars = zip(s[perm_s_indices[:,:n1]], s[perm_s_indices[:,-n2:]], np.repeat(0, n_perms))
         perm_ff_tests = np.array(pool.starmap(ff_test_2sample, pars))
         # compute p-value using equation 6 of Puritz et al. 2023
-        pval = np.sum(perm_ff_tests > Dn)/(1 + n_perms) + rng.uniform(0., 1.) * (1 + np.sum(perm_ff_tests == Dn))/(1 + n_perms)
+        pval = np.sum(perm_ff_tests > Dn)/(1. + n_perms) + rng.uniform(0., 1.) * (1. + np.sum(perm_ff_tests == Dn))/(1. + n_perms)
     # return tuple of (Dn, pval)
     return (Dn, pval)
